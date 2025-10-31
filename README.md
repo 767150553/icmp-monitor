@@ -43,6 +43,9 @@
 
 # 局域网访问（监听 0.0.0.0）
 .\icmp-monitor.exe' -web 0.0.0.0:8080 -web-user user -web-token 305
+
+#关闭程序
+netstat -ano | findstr :8080
 ```
 访问地址：
 - 本机：`http://127.0.0.1:8080/`
