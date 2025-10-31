@@ -1,57 +1,70 @@
 # ICMP 监控程序（Windows + Linux）
 
-用于检测哪些主机正在对本机进行 Ping 操作（ICMP Echo 请求），支持 IPv4 与 IPv6。
+用于检测哪些主机正在对本机进行 Ping 操作（ICMP Echo 请求），支持 IPv4 与 IPv6。可输出到终端或提供 Web UI/API，并带有限频与黑名单防御能力。
 
-## 功能
+## 目录
+- 概览与功能
+- 运行环境与权限
+- 快速开始（Windows / Linux）
+- Web UI 与认证
+- 常见命令与示例
+- 防御参数与默认值
+- 自 Ping（回环）抓取说明
+- API 一览
+- 故障排查
+- 构建与发布
 
-- 枚举所有可用抓包设备并在其上监听 ICMP/ICMPv6
-- 仅记录目标为本机 IP 的 Echo 请求（避免无关流量）
-- 实时事件输出（人类可读或 JSON 行）
-- 周期性汇总来源主机、次数、最近时间、协议与网卡
-- 支持筛选网卡、设置运行时长、切换输出格式
-- 内置频率限制与黑名单防御（阈值可配置，支持声音告警）
-- 提供 Web UI 与 API，支持 HTTP 基本认证与可选 HTTPS
+## 概览与功能
+- 枚举所有可用抓包设备并在其上监听 ICMP/ICMPv6。
+- 仅记录目标为本机 IP 的 Echo 请求（避免无关流量）。
+- 实时事件输出（人类可读或 JSON 行）。
+- 周期性汇总来源主机、次数、最近时间、协议与网卡。
+- 支持筛选网卡、设置运行时长、切换输出格式。
+- 内置频率限制与黑名单防御（阈值可配置，支持声音告警）。
+- 提供 Web UI 与 API，支持 HTTP 基本认证与可选 HTTPS。
 
 ## 运行环境与权限
-
-- Windows：需安装 [Npcap](https://npcap.com/)，建议以管理员权限运行。
+- Windows：需安装 `Npcap`，建议以管理员权限运行。
 - Linux：建议以 `root` 运行；或为二进制授予能力：
   ```bash
   sudo setcap cap_net_raw,cap_net_admin=eip ./icmp-monitor
   ```
 
-## 构建与运行
+## 快速开始
+### Windows（PowerShell）
+```powershell
+# 启动仅本机访问的 Web UI
+& 'E:\ICMP\dist\icmp-monitor.exe' -web :8080
 
+# 启用认证（浏览器会弹出登录框）
+& 'E:\ICMP\dist\icmp-monitor.exe' -web :8080 -web-user user -web-token 305
+
+# 局域网访问（监听 0.0.0.0）
+& 'E:\ICMP\dist\icmp-monitor.exe' -web 0.0.0.0:8080 -web-user user -web-token 305
+```
+访问地址：
+- 本机：`http://127.0.0.1:8080/`
+- 局域网：`http://<你的主机IP>:8080/`
+
+### Linux
 ```bash
-# 在项目根目录
-go run .
-# 或构建
-go build -o icmp-monitor
+# 建议使用 root 或赋能后的二进制
+./icmp-monitor -web :8080
+# any 设备统一抓取
+sudo ./icmp-monitor -use-any -web :8080
 ```
 
-## 常用参数
+## Web UI 与认证
+- 启动参数 `-web :8080` 会开启 Web 服务；未传 `-web` 时只在终端输出。
+- 认证：提供 `-web-user` 与 `-web-token` 时启用 HTTP Basic 认证。
+- HTTPS：通过 `-tls-cert` 与 `-tls-key` 指定证书与私钥启用 HTTPS。
 
+## 常见命令与示例
 ```bash
-# 启动 Web UI（默认仅本机接口）
-./icmp-monitor -web :8080
-
-# 启用 Basic 认证（浏览器会弹出认证框）
-./icmp-monitor -web :8080 -web-user user -web-token 305
-
-# 启用 HTTPS（需提供证书与私钥）
-./icmp-monitor -web :8443 -tls-cert server.crt -tls-key server.key \
-  -web-user user -web-token 305
-
-# 包含回环设备（自 Ping 检测需要）
-./icmp-monitor -include-lo
-
-# 使用 Linux 的 any 设备（汇聚所有接口）
-./icmp-monitor -use-any
-
-# 仅监听名称或描述包含“WLAN”的设备（子串匹配）
+# 过滤网卡（名称或描述包含“WLAN”的设备）
 ./icmp-monitor -interface WLAN
 
-# JSON 行输出事件与 10s 汇总
+# JSON 行输出与 10s 汇总
 ./icmp-monitor -json -summary 10s
 
 # 运行 2 分钟后自动退出
@@ -61,52 +74,59 @@ go build -o icmp-monitor
 ./icmp-monitor -debug
 ```
 
-## Web 认证与安全
-
-- 访问首页与 API 时，若提供了 `-web-user/-web-token`，将触发 HTTP Basic 认证挑战。
-- 建议在局域网内使用或配合 `-tls-cert/-tls-key` 启用 HTTPS，避免明文凭据暴露。
-- 认证参数：用户名通过 `-web-user` 指定，密码/令牌通过 `-web-token` 指定。
-
-## 自 Ping 检测
-
-- 本机对自身的 Ping（例如 `ping 127.0.0.1` 或 `ping ::1`）通常走回环接口，不经过物理网卡。
-- 在 Windows 环境，需要安装并启用 "Npcap Loopback Adapter" 才能抓到回环流量。
-- 在 Linux 环境，回环设备名称通常为 `lo`，可通过 `-include-lo` 启用；也可使用 `-use-any` 统一抓取。
-- 启动示例：
-  ```bash
-  # Windows（确保 Npcap Loopback Adapter 存在）
-  icmp-monitor -web :8080 -include-lo -web-user user -web-token 305
-
-  # Linux（包含 lo 或使用 any）
-  sudo icmp-monitor -include-lo
-  sudo icmp-monitor -use-any
-  ```
-- 验证方式：在同一台主机执行 `ping 127.0.0.1` 与 `ping ::1`，然后在浏览器或终端调用 `/api/events`，应能看到来源与目标为本机地址的记录。
-
-## 防御参数说明
-
-- `-rate-limit-sec` 每秒最大 ICMP 请求数（默认 10）。
-- `-rate-limit-min` 每分钟最大 ICMP 请求数（默认 100）。
-- `-blacklist-time` 进入黑名单的持续时间（默认 10m）。
-- `-alert-threshold` 每秒告警阈值（默认 5）。
-- `-sound-alert` 是否启用声音告警（系统蜂鸣）。
+## 防御参数（默认值）
+- `-rate-limit-sec 10` 每秒最大 ICMP 请求数。
+- `-rate-limit-min 100` 每分钟最大 ICMP 请求数。
+- `-blacklist-time 10m` 黑名单持续时间。
+- `-alert-threshold 5` 每秒告警阈值。
+- `-sound-alert` 启用系统蜂鸣。
 - `-whitelist` 白名单 IP（逗号分隔，白名单内跳过防御检查）。
 
-## 说明与局限
+## 自 Ping（回环）抓取说明
+- 本机对自身的 Ping（例如 `ping 127.0.0.1` 或 `ping ::1`）通常走回环接口，不经过物理网卡。
+- Windows：安装并启用 "Npcap Loopback Adapter" 才能抓到回环流量。
+- Linux：回环设备通常为 `lo`，可通过 `-include-lo` 启用；也可使用 `-use-any` 统一抓取。
+示例：
+```bash
+# Windows（确保存在 Npcap Loopback Adapter）
+icmp-monitor -web :8080 -include-lo -web-user user -web-token 305
+# Linux（包含 lo 或使用 any）
+sudo icmp-monitor -include-lo
+sudo icmp-monitor -use-any
+```
 
-- 程序通过 libpcap/Npcap/WinPcap 进行抓包，并使用 gopacket 解析。
-- 仅统计 Echo Request（ICMPv4 type 8，ICMPv6 type 128），不包含 Echo Reply。
-- 若看不到事件，请检查：
-  - 是否有主机正在 ping 本机；
-  - 是否启用了回环设备（自 Ping 检测）；
-  - 是否具备抓包权限（Windows 需管理员，Linux 需 root 或相应能力）。
-
-## API
-
-- `GET /api/events?limit=50&top=20` 返回最近事件与来源汇总（需认证时返回 401 并附带 WWW-Authenticate）。
+## API 一览
+- `GET /api/events?limit=50&top=20` 返回最近事件与来源汇总（如启用认证，未提供凭据返回 401）。
 - `GET /api/defense` 返回防御状态与黑名单信息。
 
-## 浏览器访问
+## 故障排查
+- 未传 `-web` 参数：默认不启用 Web，仅在终端输出。
+- 端口被占用：更换端口，如 `-web :9090`。
+- 绑定地址导致无法远程访问：使用 `-web 0.0.0.0:8080`。
+- 防火墙拦截：第一次对外开放时允许该程序的入站连接。
+- CMD vs PowerShell：
+  - CMD 直接运行：`icmp-monitor.exe -web :8080`（不要写 `./`）。
+  - PowerShell 可使用相对路径：`.\nicmp-monitor.exe -web :8080`，或调用运算符：`& 'E:\ICMP\dist\icmp-monitor.exe' ...`。
+- 监听自检：
+  ```powershell
+  netstat -ano | findstr :8080
+  Test-NetConnection 127.0.0.1 -Port 8080
+  ```
 
-- 浏览器访问首页：`http://127.0.0.1:8080/`；若启用认证，将弹出登录框。
-- 若启用 HTTPS：`https://127.0.0.1:8443/`，首次访问可能提示不受信任的证书（自签）。
+## 构建与发布
+```bash
+# 在项目根目录
+go run .
+# 或构建
+go build -o icmp-monitor
+```
+- 源码仓库建议保留：`README.md`、`go.mod`、`go.sum`、`main.go`、`ui_qt.go`、`ui_qt_stub.go`、`.gitignore`。
+- 交付产物不入仓库：`dist/`、所有 `*.zip`、日志与二进制。
+- 发布建议：在 GitHub Releases 创建版本（例如 `v1.0.0`），上传 `icmp-monitor-win64.zip` 作为附件。
+- Windows 可执行文件校验（可选）：
+  ```powershell
+  Get-FileHash 'E:\ICMP\dist\icmp-monitor.exe' -Algorithm SHA256
+  ```
+
+---
+初始发布：提供 ICMP 监控、Web UI/API、限频与黑名单防御；支持 IPv4/IPv6 与回环抓取配置。
