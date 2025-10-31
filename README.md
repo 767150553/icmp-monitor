@@ -112,21 +112,3 @@ sudo icmp-monitor -use-any
   netstat -ano | findstr :8080
   Test-NetConnection 127.0.0.1 -Port 8080
   ```
-
-## 构建与发布
-```bash
-# 在项目根目录
-go run .
-# 或构建
-go build -o icmp-monitor
-```
-- 源码仓库建议保留：`README.md`、`go.mod`、`go.sum`、`main.go`、`ui_qt.go`、`ui_qt_stub.go`、`.gitignore`。
-- 交付产物不入仓库：`dist/`、所有 `*.zip`、日志与二进制。
-- 发布建议：在 GitHub Releases 创建版本（例如 `v1.0.0`），上传 `icmp-monitor-win64.zip` 作为附件。
-- Windows 可执行文件校验（可选）：
-  ```powershell
-  Get-FileHash 'E:\ICMP\dist\icmp-monitor.exe' -Algorithm SHA256
-  ```
-
----
-初始发布：提供 ICMP 监控、Web UI/API、限频与黑名单防御；支持 IPv4/IPv6 与回环抓取配置。
