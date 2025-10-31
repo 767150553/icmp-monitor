@@ -36,13 +36,13 @@
 ### Windows（PowerShell）
 ```powershell
 # 启动仅本机访问的 Web UI
-& 'E:\ICMP\dist\icmp-monitor.exe' -web :8080
+ .\icmp-monitor.exe -web :8080
 
 # 启用认证（浏览器会弹出登录框）
-& 'E:\ICMP\dist\icmp-monitor.exe' -web :8080 -web-user user -web-token 305
+.\icmp-monitor.exe -web :8080 -web-user user -web-token 305
 
 # 局域网访问（监听 0.0.0.0）
-& 'E:\ICMP\dist\icmp-monitor.exe' -web 0.0.0.0:8080 -web-user user -web-token 305
+.\icmp-monitor.exe' -web 0.0.0.0:8080 -web-user user -web-token 305
 ```
 访问地址：
 - 本机：`http://127.0.0.1:8080/`
