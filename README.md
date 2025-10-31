@@ -1,6 +1,8 @@
 # ICMP 监控程序（Windows + Linux）
 
 用于检测哪些主机正在对本机进行 Ping 操作（ICMP Echo 请求），支持 IPv4 与 IPv6。可输出到终端或提供 Web UI/API，并带有限频与黑名单防御能力。
+<img width="1559" height="1211" alt="image" src="https://github.com/user-attachments/assets/43e087c8-1536-4bbc-bc81-cad323b93d59" />
+
 
 ## 目录
 - 概览与功能
